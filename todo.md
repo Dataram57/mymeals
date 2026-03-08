@@ -5,6 +5,17 @@ Panels:
 - ***Search for new recipies***
 - Optional: ***Write your own recipy***
 
+API (Meal DB):
+
+Searching by name:
+- `https://www.themealdb.com/api/json/v1/1/search.php?s={meal}`
+- `https://www.themealdb.com/api/json/v1/1/search.php?s=pasta`
+
+
+Searching by id:
+- `https://www.themealdb.com/api/json/v1/1/lookup.php?i={id}`
+- `https://www.themealdb.com/api/json/v1/1/lookup.php?i=52771`
+
 
 Zbiór przepisów
 •
