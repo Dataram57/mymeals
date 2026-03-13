@@ -15,6 +15,7 @@ import com.example.mymeals.screens.ScreenSearchMeals
 import com.example.mymeals.screens.ScreenViewMeal
 import com.example.mymeals.db.MealDao
 import org.json.JSONObject
+import android.util.Log
 
 
 class MainActivity : ComponentActivity() {
@@ -45,7 +46,7 @@ class MainActivity : ComponentActivity() {
                         composable("favourites") {
                             ScreenFavouriteMeals(
                                 mealDao = mealDao,
-                                onOptionClick = { meal ->
+                                onMealClick = { meal ->
                                     //navController.navigate("search")
                                     //navController.navigate("view/" + meal.toString())
 
@@ -56,7 +57,11 @@ class MainActivity : ComponentActivity() {
 
                                     //navigate to view
                                     navController.navigate("view")
-                                }
+                                },
+                                onAddClick = {
+                                    navController.navigate("search")
+                                },
+                                onMoreClick = {},
                             )
                         }
 
@@ -65,6 +70,7 @@ class MainActivity : ComponentActivity() {
                             val mealString = navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.get<String>("meal")
+                            Log.d("com.example.mymeals","test")
 
                             val meal = mealString?.let { JSONObject(it) }
                             //pass
@@ -76,7 +82,16 @@ class MainActivity : ComponentActivity() {
 
                         composable("search"){
                             ScreenSearchMeals(
-                                mealDao = mealDao
+                                onMealClick = { meal ->
+                                    //pass complex object
+                                    navController.currentBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("meal", meal.toString())
+
+                                    //navigate to view
+                                    navController.navigate("view")
+                                }
+
                             )
                         }
 

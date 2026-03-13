@@ -32,23 +32,34 @@ import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
 import org.json.JSONObject
+import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.ExperimentalMaterial3Api
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenFavouriteMeals(
     mealDao: MealDao,
-    onOptionClick: (JSONObject) -> Unit,
+    onMealClick: (JSONObject) -> Unit,
+    onAddClick: () -> Unit,
+    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     var meals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+
     LaunchedEffect(Unit) {
 
         var ids = getSavedMealIds(mealDao)
 
-        if(ids.size == 0){
+        if (ids.size == 0) {
             mealDao.insertMeal(FavouriteMeal("52771"))
             ids = getSavedMealIds(mealDao)
         }
-
 
         val loadedMeals = mutableListOf<JSONObject>()
 
@@ -60,13 +71,42 @@ fun ScreenFavouriteMeals(
         meals = loadedMeals
     }
 
-    LazyColumn {
-        items(meals) { meal ->
-            MealItemView(
-                meal = meal,
-                onOptionClick = onOptionClick
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Favourite Meals") },
+                actions = {
+
+                    IconButton(onClick = onAddClick) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add new meal."
+                        )
+                    }
+
+                    IconButton(onClick = onMoreClick) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options"
+                        )
+                    }
+
+                }
             )
         }
+    ) { padding ->
+
+        LazyColumn(
+            modifier = modifier.padding(padding)
+        ) {
+            items(meals) { meal ->
+                MealItemView(
+                    meal = meal,
+                    onOptionClick = onMealClick
+                )
+            }
+        }
+
     }
 }
 

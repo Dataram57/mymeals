@@ -1,5 +1,6 @@
 package com.example.mymeals.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +13,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,10 +36,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenSearchMeals(
-    mealDao: MealDao
+    onMealClick : (JSONObject) -> Unit
 ) {
 
     var query by remember { mutableStateOf("") }
@@ -43,70 +47,72 @@ fun ScreenSearchMeals(
 
     val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        Text("Meal Search", style = MaterialTheme.typography.titleLarge)
-
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = { Text("Search meal") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Button(
-            onClick = {
-                scope.launch {
-                    meals = searchMeals(query)
-                }
-            }
-        ) {
-            Text("Search")
+    Scaffold (
+        topBar = {
+            TopAppBar(
+                title = { Text("Meal Search") }
+            )
         }
+    )
+    { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)  // your inner padding
+        ) {
 
-        Spacer(Modifier.height(16.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search meal") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        LazyColumn {
+            Spacer(Modifier.height(8.dp))
 
-            items(meals) { meal ->
+            Button(
+                onClick = {
+                    scope.launch {
+                        meals = searchMeals(query)
+                    }
+                }
+            ) {
+                Text("Search")
+            }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Spacer(Modifier.height(16.dp))
 
-                    AsyncImage(
-                        model = meal.getString("strMealThumb"),
-                        contentDescription = meal.getString("strMeal"),
+            LazyColumn {
+
+                items(meals) { meal ->
+
+                    Row(
                         modifier = Modifier
-                            .size(80.dp)
-                    )
+                            .fillMaxWidth()
+                            .clickable {
+                                onMealClick(meal)
+                            }
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-                    Spacer(Modifier.width(12.dp))
+                        AsyncImage(
+                            model = meal.getString("strMealThumb"),
+                            contentDescription = meal.getString("strMeal"),
+                            modifier = Modifier
+                                .size(80.dp)
+                        )
 
-                    Text(
-                        text = meal.getString("strMeal"),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                        Spacer(Modifier.width(12.dp))
 
-                    val scope = rememberCoroutineScope()
+                        Text(
+                            text = meal.getString("strMeal"),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
 
-                    Button(onClick = {
-                        scope.launch(Dispatchers.IO) {
-                            mealDao.insertMeal(FavouriteMeal(meal.getString("idMeal")))
-                        }
-                    }) {
-                        Text("Save")
+                        val scope = rememberCoroutineScope()
+
                     }
                 }
             }
