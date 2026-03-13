@@ -2,21 +2,16 @@ package com.example.mymeals.api
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class Meal(
-    val idMeal: String,
-    val strMeal: String,
-    val strMealThumb: String
-)
 
-suspend fun searchMeals(query: String): List<Meal> {
+suspend fun searchMeals(query: String): List<JSONObject> {
     return withContext(Dispatchers.IO) {
-
         try {
             val url = URL("https://www.themealdb.com/api/json/v1/1/search.php?s=$query")
             val connection = url.openConnection() as HttpURLConnection
@@ -24,9 +19,15 @@ suspend fun searchMeals(query: String): List<Meal> {
             val reader = BufferedReader(InputStreamReader(connection.inputStream))
             val result = reader.readText()
 
-            val json = JSONObject(result)
-            val mealsArray = json.getJSONArray("meals")
+            val jsonArray = JSONObject(result).getJSONArray("meals")
 
+            val list = mutableListOf<JSONObject>()
+            for (i in 0 until jsonArray.length()) {
+                list.add(jsonArray.getJSONObject(i))
+            }
+
+            list
+            /*
             val meals = mutableListOf<Meal>()
 
             for (i in 0 until mealsArray.length()) {
@@ -42,14 +43,15 @@ suspend fun searchMeals(query: String): List<Meal> {
             }
 
             meals
+            */
 
         } catch (e: Exception) {
-            emptyList()
+            emptyList<JSONObject>()
         }
     }
 }
 
-suspend fun fetchMealById(id: String): Meal? {
+suspend fun fetchMealById(id: String): JSONObject? {
     return withContext(Dispatchers.IO) {
 
         try {
@@ -59,7 +61,9 @@ suspend fun fetchMealById(id: String): Meal? {
             val reader = BufferedReader(InputStreamReader(connection.inputStream))
             val jsonText = reader.readText()
 
-            val json = JSONObject(jsonText)
+            JSONObject(jsonText)
+
+            /*
             val mealsArray = json.getJSONArray("meals")
             val obj = mealsArray.getJSONObject(0)
 
@@ -68,6 +72,7 @@ suspend fun fetchMealById(id: String): Meal? {
                 strMeal = obj.getString("strMeal"),
                 strMealThumb = obj.getString("strMealThumb")
             )
+            */
 
         } catch (e: Exception) {
             null

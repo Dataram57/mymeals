@@ -14,6 +14,7 @@ import com.example.mymeals.screens.ScreenFavouriteMeals
 import com.example.mymeals.screens.ScreenSearchMeals
 import com.example.mymeals.screens.ScreenViewMeal
 import com.example.mymeals.db.MealDao
+import org.json.JSONObject
 
 
 class MainActivity : ComponentActivity() {
@@ -23,14 +24,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //db
         val db = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
             "meals_db"
         ).build()
-
         mealDao = db.mealDao()
 
+        //rendering
         enableEdgeToEdge()
         setContent {
             setContent {
@@ -38,26 +40,38 @@ class MainActivity : ComponentActivity() {
 
                     val navController = rememberNavController()
 
-                    NavHost(navController = navController, startDestination = "list") {
+                    NavHost(navController = navController, startDestination = "favourites") {
 
-                        composable("list") {
+                        composable("favourites") {
                             ScreenFavouriteMeals(
                                 mealDao = mealDao,
-                                onOptionClick = { imageRes ->
-                                    //navController.navigate("ipScreen/$imageRes")
-                                    navController.navigate("search")
+                                onOptionClick = { meal ->
+                                    //navController.navigate("search")
+                                    //navController.navigate("view/" + meal.toString())
+
+                                    //pass complex object
+                                    navController.currentBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("meal", meal.toString())
+
+                                    //navigate to view
+                                    navController.navigate("view")
                                 }
                             )
                         }
 
-                        composable(
-                            route = "ipScreen/{imageRes}",
-                            arguments = listOf(navArgument("imageRes") { type = NavType.IntType })
-                        ) { backStackEntry ->
+                        composable("view") {
+                            //get complex argument
+                            val mealString = navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.get<String>("meal")
 
-                            val imageRes = backStackEntry.arguments?.getInt("imageRes") ?: 0
-
-                            ScreenViewMeal(imageRes)
+                            val meal = mealString?.let { JSONObject(it) }
+                            //pass
+                            if(meal != null)
+                                ScreenViewMeal(
+                                    meal = meal
+                                )
                         }
 
                         composable("search"){

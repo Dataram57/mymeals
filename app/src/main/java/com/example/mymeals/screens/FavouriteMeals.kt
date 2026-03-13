@@ -1,5 +1,6 @@
 package com.example.mymeals.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,18 +28,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.mymeals.api.Meal
 import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
+import org.json.JSONObject
 
 @Composable
 fun ScreenFavouriteMeals(
     mealDao: MealDao,
-    onOptionClick: (Int) -> Unit,
+    onOptionClick: (JSONObject) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var meals by remember { mutableStateOf<List<Meal>>(emptyList()) }
+    var meals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     LaunchedEffect(Unit) {
 
         var ids = getSavedMealIds(mealDao)
@@ -49,35 +50,22 @@ fun ScreenFavouriteMeals(
         }
 
 
-        val loadedMeals = mutableListOf<Meal>()
+        val loadedMeals = mutableListOf<JSONObject>()
 
         for (id in ids) {
             val meal = fetchMealById(id)
-            if (meal != null) loadedMeals.add(meal)
+            if (meal != null) loadedMeals.add(meal.getJSONArray("meals").getJSONObject(0))
         }
 
         meals = loadedMeals
     }
 
     LazyColumn {
-
         items(meals) { meal ->
-
-            Row(
-                modifier = Modifier.padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                coil.compose.AsyncImage(
-                    model = meal.strMealThumb,
-                    contentDescription = meal.strMeal,
-                    modifier = Modifier.size(80.dp)
-                )
-
-                Spacer(Modifier.width(12.dp))
-
-                Text(meal.strMeal)
-            }
+            MealItemView(
+                meal = meal,
+                onOptionClick = onOptionClick
+            )
         }
     }
 }
@@ -89,7 +77,10 @@ suspend fun getSavedMealIds(mealDao: MealDao): List<String> {
 }
 
 @Composable
-fun MealItemView(meal: MealItem, onOptionClick: (Int) -> Unit) {
+fun MealItemView(
+    meal: JSONObject,
+    onOptionClick: (JSONObject) -> Unit
+) {
 
     var expanded by remember { mutableStateOf(false) }
 
@@ -108,25 +99,25 @@ fun MealItemView(meal: MealItem, onOptionClick: (Int) -> Unit) {
                     .width(8.dp)
                     .height(64.dp)
                     .background(
-                        if (meal.isImportant) Color.Red else Color.Transparent
+                        if (true) Color.Red else Color.Transparent
                     )
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
+            //Log.d("com.example.mymeals ",meal.toString())
             // Image
-            Image(
-                painter = painterResource(meal.imageRes),
-                contentDescription = meal.title,
-                modifier = Modifier
-                    .size(64.dp)
+            coil.compose.AsyncImage(
+                model = meal.getString("strMealThumb"),
+                contentDescription = meal.getString("strMeal"),
+                modifier = Modifier.size(80.dp)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             // Title
             Text(
-                text = meal.title,
+                text = meal.getString("strMeal"),
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -134,11 +125,10 @@ fun MealItemView(meal: MealItem, onOptionClick: (Int) -> Unit) {
         // Collapsible section
         if (expanded) {
             Column(modifier = Modifier.padding(start = 80.dp)) {
-
                 Text(
                     "Show IP",
                     modifier = Modifier.clickable {
-                        onOptionClick(meal.imageRes)
+                        onOptionClick(meal)
                     }
                 )
             }

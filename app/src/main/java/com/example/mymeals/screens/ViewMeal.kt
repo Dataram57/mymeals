@@ -19,9 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.mymeals.api.fetchIp
+import org.json.JSONObject
 
 @Composable
-fun ScreenViewMeal(imageRes: Int) {
+fun ScreenViewMeal(
+    meal: JSONObject? = null,
+) {
 
     var ipText by remember { mutableStateOf("Loading...") }
 
@@ -36,10 +39,10 @@ fun ScreenViewMeal(imageRes: Int) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Image(
-            painter = painterResource(imageRes),
-            contentDescription = null,
-            modifier = Modifier.size(150.dp)
+        coil.compose.AsyncImage(
+            model = meal?.getString("strMealThumb"),
+            contentDescription = meal?.getString("strMeal"),
+            modifier = Modifier.size(80.dp)
         )
 
         Spacer(Modifier.height(24.dp))

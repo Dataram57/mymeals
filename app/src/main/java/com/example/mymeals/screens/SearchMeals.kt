@@ -25,12 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.mymeals.api.Meal
 import com.example.mymeals.api.searchMeals
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 
 @Composable
@@ -39,7 +39,7 @@ fun ScreenSearchMeals(
 ) {
 
     var query by remember { mutableStateOf("") }
-    var meals by remember { mutableStateOf<List<Meal>>(emptyList()) }
+    var meals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
 
     val scope = rememberCoroutineScope()
 
@@ -86,8 +86,8 @@ fun ScreenSearchMeals(
                 ) {
 
                     AsyncImage(
-                        model = meal.strMealThumb,
-                        contentDescription = meal.strMeal,
+                        model = meal.getString("strMealThumb"),
+                        contentDescription = meal.getString("strMeal"),
                         modifier = Modifier
                             .size(80.dp)
                     )
@@ -95,7 +95,7 @@ fun ScreenSearchMeals(
                     Spacer(Modifier.width(12.dp))
 
                     Text(
-                        text = meal.strMeal,
+                        text = meal.getString("strMeal"),
                         style = MaterialTheme.typography.bodyLarge
                     )
 
@@ -103,7 +103,7 @@ fun ScreenSearchMeals(
 
                     Button(onClick = {
                         scope.launch(Dispatchers.IO) {
-                            mealDao.insertMeal(FavouriteMeal(meal.idMeal))
+                            mealDao.insertMeal(FavouriteMeal(meal.getString("idMeal")))
                         }
                     }) {
                         Text("Save")
