@@ -39,10 +39,35 @@ import org.json.JSONObject
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+import androidx.room.Room
+
+
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var mealDao: MealDao
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "meals_db"
+        ).build()
+
+        mealDao = db.mealDao()
+
         enableEdgeToEdge()
         setContent {
             setContent {
@@ -54,7 +79,7 @@ class MainActivity : ComponentActivity() {
 
                         composable("list") {
                             MealList(
-                                meals = sampleMeals,
+                                mealDao = mealDao,
                                 onOptionClick = { imageRes ->
                                     //navController.navigate("ipScreen/$imageRes")
                                     navController.navigate("search")
@@ -73,7 +98,9 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("search"){
-                            MealSearchScreen()
+                            MealSearchScreen(
+                                mealDao = mealDao
+                            )
                         }
 
                     }
@@ -84,37 +111,58 @@ class MainActivity : ComponentActivity() {
 }
 
 
-val sampleMeals = listOf(
-    MealItem("Spaghetti", R.drawable.majster1, true),
-    MealItem("Burger", R.drawable.majster2, false),
-    MealItem("Pizza", R.drawable.majster3, true)
-)
+
 
 @Composable
 fun MealList(
-    meals: List<MealItem>,
+    mealDao: MealDao,
     onOptionClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(modifier = modifier) {
+    var meals by remember { mutableStateOf<List<Meal>>(emptyList()) }
+    LaunchedEffect(Unit) {
+
+        var ids = getSavedMealIds(mealDao)
+
+        if(ids.size == 0){
+            mealDao.insertMeal(FavouriteMeal("52771"))
+            ids = getSavedMealIds(mealDao)
+        }
+
+
+        val loadedMeals = mutableListOf<Meal>()
+
+        for (id in ids) {
+            val meal = fetchMealById(id)
+            if (meal != null) loadedMeals.add(meal)
+        }
+
+        meals = loadedMeals
+    }
+
+    LazyColumn {
+
         items(meals) { meal ->
-            MealItemView(meal, onOptionClick)
+
+            Row(
+                modifier = Modifier.padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                coil.compose.AsyncImage(
+                    model = meal.strMealThumb,
+                    contentDescription = meal.strMeal,
+                    modifier = Modifier.size(80.dp)
+                )
+
+                Spacer(Modifier.width(12.dp))
+
+                Text(meal.strMeal)
+            }
         }
     }
 }
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyMealsTheme {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            MealList(
-                meals = sampleMeals,
-                {},
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
-    }
-}
+
 
 
 @Composable
@@ -179,6 +227,7 @@ fun MealItemView(meal: MealItem, onOptionClick: (Int) -> Unit) {
 
 
 data class MealItem(
+    val id: String,
     val title: String,
     val imageRes: Int,
     val isImportant: Boolean
@@ -235,10 +284,36 @@ suspend fun fetchIp(): String {
     }
 }
 
+suspend fun fetchMealById(id: String): Meal? {
+    return withContext(Dispatchers.IO) {
+
+        try {
+            val url = URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=$id")
+            val connection = url.openConnection() as HttpURLConnection
+
+            val reader = BufferedReader(InputStreamReader(connection.inputStream))
+            val jsonText = reader.readText()
+
+            val json = JSONObject(jsonText)
+            val mealsArray = json.getJSONArray("meals")
+            val obj = mealsArray.getJSONObject(0)
+
+            Meal(
+                idMeal = obj.getString("idMeal"),
+                strMeal = obj.getString("strMeal"),
+                strMealThumb = obj.getString("strMealThumb")
+            )
+
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
 
 
-
-
+suspend fun getSavedMealIds(mealDao: MealDao): List<String> {
+    return mealDao.getAllMeals().map { it.idMeal }
+}
 
 
 
@@ -295,7 +370,9 @@ suspend fun searchMeals(query: String): List<Meal> {
 
 
 @Composable
-fun MealSearchScreen() {
+fun MealSearchScreen(
+    mealDao: MealDao
+) {
 
     var query by remember { mutableStateOf("") }
     var meals by remember { mutableStateOf<List<Meal>>(emptyList()) }
@@ -357,6 +434,16 @@ fun MealSearchScreen() {
                         text = meal.strMeal,
                         style = MaterialTheme.typography.bodyLarge
                     )
+
+                    val scope = rememberCoroutineScope()
+
+                    Button(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            mealDao.insertMeal(FavouriteMeal(meal.idMeal))
+                        }
+                    }) {
+                        Text("Save")
+                    }
                 }
             }
         }
@@ -368,4 +455,29 @@ fun MealSearchScreen() {
 
 
 
+@Entity(tableName = "meals")
+data class FavouriteMeal(
+    @PrimaryKey
+    val idMeal: String,
+)
 
+
+@Dao
+interface MealDao {
+
+    @Insert
+    suspend fun insertMeal(meal: FavouriteMeal)
+
+    @Query("SELECT * FROM meals")
+    suspend fun getAllMeals(): List<FavouriteMeal>
+
+    @Query("DELETE FROM meals")
+    suspend fun clearMeals()
+}
+
+
+@Database(entities = [FavouriteMeal::class], version = 1)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun mealDao(): MealDao
+}
