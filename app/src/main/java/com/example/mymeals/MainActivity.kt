@@ -18,12 +18,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.navigation.compose.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,6 +35,10 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import org.json.JSONObject
+import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +56,8 @@ class MainActivity : ComponentActivity() {
                             MealList(
                                 meals = sampleMeals,
                                 onOptionClick = { imageRes ->
-                                    navController.navigate("ipScreen/$imageRes")
+                                    //navController.navigate("ipScreen/$imageRes")
+                                    navController.navigate("search")
                                 }
                             )
                         }
@@ -64,6 +71,11 @@ class MainActivity : ComponentActivity() {
 
                             IpScreen(imageRes)
                         }
+
+                        composable("search"){
+                            MealSearchScreen()
+                        }
+
                     }
                 }
             }
@@ -222,3 +234,138 @@ suspend fun fetchIp(): String {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+data class MealResponse(
+    val meals: List<Meal>
+)
+
+data class Meal(
+    val idMeal: String,
+    val strMeal: String,
+    val strMealThumb: String
+)
+
+
+
+suspend fun searchMeals(query: String): List<Meal> {
+    return withContext(Dispatchers.IO) {
+
+        try {
+            val url = URL("https://www.themealdb.com/api/json/v1/1/search.php?s=$query")
+            val connection = url.openConnection() as HttpURLConnection
+
+            val reader = BufferedReader(InputStreamReader(connection.inputStream))
+            val result = reader.readText()
+
+            val json = JSONObject(result)
+            val mealsArray = json.getJSONArray("meals")
+
+            val meals = mutableListOf<Meal>()
+
+            for (i in 0 until mealsArray.length()) {
+                val obj = mealsArray.getJSONObject(i)
+
+                meals.add(
+                    Meal(
+                        idMeal = obj.getString("idMeal"),
+                        strMeal = obj.getString("strMeal"),
+                        strMealThumb = obj.getString("strMealThumb")
+                    )
+                )
+            }
+
+            meals
+
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+}
+
+
+@Composable
+fun MealSearchScreen() {
+
+    var query by remember { mutableStateOf("") }
+    var meals by remember { mutableStateOf<List<Meal>>(emptyList()) }
+
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Text("Meal Search", style = MaterialTheme.typography.titleLarge)
+
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("Search meal") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                scope.launch {
+                    meals = searchMeals(query)
+                }
+            }
+        ) {
+            Text("Search")
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        LazyColumn {
+
+            items(meals) { meal ->
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    AsyncImage(
+                        model = meal.strMealThumb,
+                        contentDescription = meal.strMeal,
+                        modifier = Modifier
+                            .size(80.dp)
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Text(
+                        text = meal.strMeal,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
