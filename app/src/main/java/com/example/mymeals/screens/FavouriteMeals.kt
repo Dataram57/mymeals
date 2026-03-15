@@ -164,7 +164,7 @@ fun FavouriteMealItemView(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Tags example (strTags might be comma separated)
-                val tags = meal.optString("strTags", "").split(",").filter { it.isNotBlank() }
+                val tags = meal.optString("strTags", "").split(",").filter { it.isNotBlank() && it != "null" }
                 Row {
                     tags.forEach { tag ->
                         Box(
