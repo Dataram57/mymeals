@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
@@ -51,24 +52,28 @@ fun ScreenFavouriteMeals(
     onMealClick: (JSONObject) -> Unit,
     onAddClick: () -> Unit,
     onMoreClick: () -> Unit,
+    reloadDb: Boolean,
     modifier: Modifier = Modifier
 ) {
 
-    var meals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var meals by rememberSaveable { mutableStateOf<List<JSONObject>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadDb) {
+        if (reloadDb || meals.isEmpty()) {
+            var ids = getSavedMealIds(mealDao)
 
-        var ids = getSavedMealIds(mealDao)
+            val loadedMeals = mutableListOf<JSONObject>()
 
-        val loadedMeals = mutableListOf<JSONObject>()
+            meals = emptyList()
+            for (id in ids) {
+                val meal = fetchMealById(id)
+                if (meal != null) loadedMeals.add(meal.getJSONArray("meals").getJSONObject(0))
+            }
 
-        for (id in ids) {
-            val meal = fetchMealById(id)
-            if (meal != null) loadedMeals.add(meal.getJSONArray("meals").getJSONObject(0))
+            meals = loadedMeals
         }
-
-        meals = loadedMeals
     }
+
 
     Scaffold(
         topBar = {

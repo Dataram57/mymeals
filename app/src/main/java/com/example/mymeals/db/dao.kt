@@ -21,4 +21,5 @@ interface MealDao {
 
     @Query("DELETE FROM meals WHERE idMeal = :idMeal")
     suspend fun deleteMeal(idMeal: String): Int
+
 }

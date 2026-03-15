@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.ContentScale
 import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
@@ -48,7 +49,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ScreenViewMeal(
     meal: JSONObject? = null,
-    mealDao: MealDao
+    mealDao: MealDao,
+    onDbAltered: (Boolean) -> Unit
 ) {
     if (meal == null) {
         Text("No meal data available", modifier = Modifier.padding(24.dp))
@@ -67,12 +69,14 @@ fun ScreenViewMeal(
 
 
     var isFavourite by remember { mutableStateOf(false) }
+    var wasFavourite by remember { mutableStateOf(false) }
     var isDisabled by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         val r = mealDao.getMeal(meal.getString("idMeal"))
         if (r != null) {
             isFavourite = true
+            wasFavourite = true
         }
         isDisabled = false
     }
@@ -89,16 +93,21 @@ fun ScreenViewMeal(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopEnd
+            ) {
                 coil.compose.AsyncImage(
                     model = meal.optString("strMealThumb"),
                     contentDescription = meal.optString("strMeal"),
                     modifier = Modifier
-                        .size(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
                 )
 
-                // ⭐ Star Button at top-right corner of the image
+                // ⭐ Star Button
                 IconButton(
                     onClick = {
                         if (isDisabled) return@IconButton
@@ -113,11 +122,12 @@ fun ScreenViewMeal(
                                     FavouriteMeal(meal.getString("idMeal"))
                                 )
                             }
-
                             isFavourite = !isFavourite
                             isDisabled = false
-                        }
 
+                            //db altered
+                            onDbAltered(wasFavourite != isFavourite)
+                        }
                     },
                     modifier = Modifier
                         .padding(8.dp)

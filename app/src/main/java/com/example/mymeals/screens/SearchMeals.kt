@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -24,9 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.mymeals.api.searchMeals
@@ -41,10 +45,8 @@ import org.json.JSONObject
 fun ScreenSearchMeals(
     onMealClick : (JSONObject) -> Unit
 ) {
-
-    var query by remember { mutableStateOf("") }
-    var meals by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
-
+    var query by rememberSaveable { mutableStateOf("") }
+    var meals by rememberSaveable { mutableStateOf<List<JSONObject>>(emptyList()) }
     val scope = rememberCoroutineScope()
 
     Scaffold (
@@ -61,24 +63,39 @@ fun ScreenSearchMeals(
                 .padding(padding)
                 .padding(16.dp)  // your inner padding
         ) {
-
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search meal") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        meals = searchMeals(query)
-                    }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Search")
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search meal") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f) // fills remaining width
+                        .padding(end = 8.dp),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            scope.launch {
+                                meals = searchMeals(query)
+                            }
+                        }
+                    )
+                )
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            meals = searchMeals(query)
+                        }
+                    }
+                ) {
+                    Text("Search")
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -110,8 +127,6 @@ fun ScreenSearchMeals(
                             text = meal.getString("strMeal"),
                             style = MaterialTheme.typography.bodyLarge
                         )
-
-                        val scope = rememberCoroutineScope()
 
                     }
                 }
