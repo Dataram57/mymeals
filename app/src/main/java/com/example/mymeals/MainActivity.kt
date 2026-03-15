@@ -16,6 +16,7 @@ import com.example.mymeals.screens.ScreenViewMeal
 import com.example.mymeals.db.MealDao
 import org.json.JSONObject
 import android.util.Log
+import com.example.mymeals.db.FavouriteMeal
 
 
 class MainActivity : ComponentActivity() {
@@ -76,7 +77,9 @@ class MainActivity : ComponentActivity() {
                             //pass
                             if(meal != null)
                                 ScreenViewMeal(
-                                    meal = meal
+                                    mealDao = mealDao,
+                                    meal = meal,
+
                                 )
                         }
 

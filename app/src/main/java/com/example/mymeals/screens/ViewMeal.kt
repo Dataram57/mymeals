@@ -1,44 +1,54 @@
 package com.example.mymeals.screens
 
 import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.example.mymeals.api.fetchIp
 import org.json.JSONObject
 import androidx.core.net.toUri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import com.example.mymeals.api.fetchMealById
+import com.example.mymeals.db.FavouriteMeal
+import com.example.mymeals.db.MealDao
+import kotlinx.coroutines.launch
 
 @Composable
 fun ScreenViewMeal(
     meal: JSONObject? = null,
+    mealDao: MealDao
 ) {
     if (meal == null) {
         Text("No meal data available", modifier = Modifier.padding(24.dp))
@@ -49,11 +59,24 @@ fun ScreenViewMeal(
 
     val ingredients = remember {
         (1..20).mapNotNull { i ->
-            val ingredient = meal.optString("strIngredient$i").takeIf { it.isNotBlank() }
+            val ingredient = meal.optString("strIngredient$i").takeIf { it.isNotBlank() && it != "null" }
             val measure = meal.optString("strMeasure$i").takeIf { it.isNotBlank() }
             if (ingredient != null && measure != null) "$ingredient - $measure" else null
         }
     }
+
+
+    var isFavourite by remember { mutableStateOf(false) }
+    var isDisabled by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        val r = mealDao.getMeal(meal.getString("idMeal"))
+        if (r != null) {
+            isFavourite = true
+        }
+        isDisabled = false
+    }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
 
@@ -66,13 +89,51 @@ fun ScreenViewMeal(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            coil.compose.AsyncImage(
-                model = meal.optString("strMealThumb"),
-                contentDescription = meal.optString("strMeal"),
-                modifier = Modifier
-                    .size(180.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            )
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
+                coil.compose.AsyncImage(
+                    model = meal.optString("strMealThumb"),
+                    contentDescription = meal.optString("strMeal"),
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+
+                // ⭐ Star Button at top-right corner of the image
+                IconButton(
+                    onClick = {
+                        if (isDisabled) return@IconButton
+
+                        scope.launch {
+                            isDisabled = true
+
+                            if (isFavourite) {
+                                mealDao.deleteMeal(meal.getString("idMeal"))
+                            } else {
+                                mealDao.insertMeal(
+                                    FavouriteMeal(meal.getString("idMeal"))
+                                )
+                            }
+
+                            isFavourite = !isFavourite
+                            isDisabled = false
+                        }
+
+                    },
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .background(
+                            color = Color.White.copy(alpha = 0.7f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Star Meal",
+                        tint = if (isFavourite) Color(0xFFFFD700) else Color.LightGray
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 

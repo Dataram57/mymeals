@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import coil.compose.AsyncImage
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,11 +59,6 @@ fun ScreenFavouriteMeals(
     LaunchedEffect(Unit) {
 
         var ids = getSavedMealIds(mealDao)
-
-        if (ids.size == 0) {
-            mealDao.insertMeal(FavouriteMeal("52771"))
-            ids = getSavedMealIds(mealDao)
-        }
 
         val loadedMeals = mutableListOf<JSONObject>()
 
@@ -100,7 +99,7 @@ fun ScreenFavouriteMeals(
             modifier = modifier.padding(padding)
         ) {
             items(meals) { meal ->
-                MealItemView(
+                FavouriteMealItemView(
                     meal = meal,
                     onOptionClick = onMealClick
                 )
@@ -117,7 +116,7 @@ suspend fun getSavedMealIds(mealDao: MealDao): List<String> {
 }
 
 @Composable
-fun MealItemView(
+fun FavouriteMealItemView(
     meal: JSONObject,
     onOptionClick: (JSONObject) -> Unit
 ) {
@@ -127,62 +126,95 @@ fun MealItemView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded }
+            .clickable { expanded = !expanded } // toggle expanded
+            .padding(8.dp)
+            .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(8.dp))
+            //.shadow(2.dp, RoundedCornerShape(8.dp))
             .padding(8.dp)
     ) {
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
 
-            // Left red importance column
-            Box(
-                modifier = Modifier
-                    .width(8.dp)
-                    .height(64.dp)
-                    .background(
-                        if (true) Color.Red else Color.Transparent
-                    )
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            //Log.d("com.example.mymeals ",meal.toString())
-            // Image
-            coil.compose.AsyncImage(
+            // Meal image
+            AsyncImage(
                 model = meal.getString("strMealThumb"),
                 contentDescription = meal.getString("strMeal"),
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Title
-            Text(
-                text = meal.getString("strMeal"),
-                style = MaterialTheme.typography.titleMedium
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                // Meal title
+                Text(
+                    text = meal.getString("strMeal"),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Tags example (strTags might be comma separated)
+                val tags = meal.optString("strTags", "").split(",").filter { it.isNotBlank() }
+                Row {
+                    tags.forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(end = 4.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        // Collapsible section
+        // Expanded section: ingredients
         if (expanded) {
-            Column(modifier = Modifier.padding(start = 80.dp)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(modifier = Modifier.padding(start = 8.dp)) {
+
                 Text(
-                    "Show IP",
-                    modifier = Modifier.clickable {
-                        onOptionClick(meal)
+                    text = "Ingredients:",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Example: strIngredient1, strIngredient2, ... up to 20
+                for (i in 1..20) {
+                    val ingredient = meal.optString("strIngredient$i", "")
+                    val measure = meal.optString("strMeasure$i", "")
+                    if (ingredient.isNotBlank() && ingredient != "null") {
+                        Text(
+                            text = "• $ingredient : $measure",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Click to view details",
+                    modifier = Modifier.clickable { onOptionClick(meal) },
+                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary)
                 )
             }
         }
     }
 }
-
-
-
-
-data class MealItem(
-    val id: String,
-    val title: String,
-    val imageRes: Int,
-    val isImportant: Boolean
-)
-
