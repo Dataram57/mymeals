@@ -88,12 +88,14 @@ fun ScreenFavouriteMeals(
                         )
                     }
 
+                    /*
                     IconButton(onClick = onMoreClick) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More options"
                         )
                     }
+                    */
 
                 }
             )
