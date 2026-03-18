@@ -24,3 +24,12 @@ Opis: Użytkownik tworzy listę ulubionych przepisów, zapisując własne przepi
 linki do nich w bazie danych Room.
 Integracja z REST: Integracja z API takim jak TheMealDB pozwoli na pobieranie
 nowych inspiracji, zdjęć potraw czy składników.
+
+- Panel search
+    - Filtruje kategorie, składniki
+- Panel favourite meals:
+    - Filture kategorie, składniki
+- Elementy ViewModel, stan okien (jokeviewmodel)
+- DB:
+  - save more data than just links/ids, 
+
