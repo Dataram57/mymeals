@@ -10,12 +10,10 @@ class MealRepository(
     private val mealDao: MealDao
 ) {
 
-    // 🔍 SEARCH (API only)
     suspend fun searchMeals(query: String): List<JSONObject> {
         return searchMeals(query)
     }
 
-    // ❤️ FAVOURITES (DB only)
     suspend fun getFavouriteIds(): List<String> {
         return mealDao.getAllMeals().map { it.idMeal }
     }
@@ -32,7 +30,6 @@ class MealRepository(
         mealDao.deleteMeal(id)
     }
 
-    // 🍽️ SINGLE MEAL (API)
     suspend fun getMealById(id: String): JSONObject? {
         val response = fetchMealById(id)
         return response
@@ -40,7 +37,6 @@ class MealRepository(
             ?.getJSONObject(0)
     }
 
-    // 🔥 COMBINED: favourites + API
     suspend fun getFavouriteMeals(): List<JSONObject> {
         val ids = getFavouriteIds()
 

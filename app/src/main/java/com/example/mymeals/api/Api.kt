@@ -122,3 +122,27 @@ suspend fun fetchCategories() : List<JSONObject> {
         }
     }
 }
+
+suspend fun fetchCategory(categoryName : String) : List<JSONObject> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL("https://www.themealdb.com/api/json/v1/1/filter.php?c=${categoryName}")
+            val connection = url.openConnection() as HttpURLConnection
+
+            val reader = BufferedReader(InputStreamReader(connection.inputStream))
+            val result = reader.readText()
+
+            val jsonArray = JSONObject(result).getJSONArray("meals")
+
+            val list = mutableListOf<JSONObject>()
+            for (i in 0 until jsonArray.length()) {
+                list.add(jsonArray.getJSONObject(i))
+            }
+
+            list
+
+        } catch (e: Exception) {
+            emptyList<JSONObject>()
+        }
+    }
+}

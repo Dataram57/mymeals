@@ -41,7 +41,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.ContentScale
-import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
 import kotlinx.coroutines.launch
