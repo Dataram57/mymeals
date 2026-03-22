@@ -25,11 +25,6 @@ linki do nich w bazie danych Room.
 Integracja z REST: Integracja z API takim jak TheMealDB pozwoli na pobieranie
 nowych inspiracji, zdjęć potraw czy składników.
 
-- Panel search
-  - Filtruje kategorie, składniki
-    - Filter by mentioned `strCategory`
-    - Filter by mentioned `strTags`
-    - Filter by mentioned `strIngredientX`
 - DB:
   - save more data than just links/ids, 
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +76,7 @@ fun ScreenCategory(
 ) {
     val meals = viewModel.meals
     val isLoading = viewModel.isLoading
+    val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -92,7 +94,8 @@ fun ScreenCategory(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                state = gridState,
+                columns = GridCells.Adaptive(minSize = 150.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
