@@ -68,14 +68,22 @@ class SearchViewModel : ViewModel() {
 @Composable
 fun ScreenSearchMeals(
     viewModel: SearchViewModel,
-    onMealClick: (JSONObject) -> Unit
+    onMealClick: (JSONObject) -> Unit,
+    onCategoriesClick: () -> Unit
 ) {
     val query = viewModel.query
     val meals = viewModel.meals
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Meal Search") })
+            TopAppBar(
+                title = { Text("Meal Search") },
+                actions = {
+                    Button(onClick = onCategoriesClick) {
+                        Text("Categories")
+                    }
+                }
+            )
         }
     ) { padding ->
 

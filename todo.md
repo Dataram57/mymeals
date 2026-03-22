@@ -37,11 +37,6 @@ nowych inspiracji, zdjęć potraw czy składników.
     - Panel MealCategories `https://www.themealdb.com/api/json/v1/1/filter.php?c=Seafood`
       - --> Panel ViewMeal:
         - Requires additional fetch/fetch-screen to be performed (`https://www.themealdb.com/api/json/v1/1/lookup.php?i={id}`)
-- Elementy ViewModel, stan okien (jokeviewmodel)
-  - Alright, I should:
-    - Separate Logic and UI inside screens using ViewModel.
-    - Alter MainActivity to also use ViewModel
-      - Separate/protect mealDao
 - DB:
   - save more data than just links/ids, 
 

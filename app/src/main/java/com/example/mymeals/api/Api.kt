@@ -98,3 +98,27 @@ suspend fun fetchIp(): String {
         }
     }
 }
+
+suspend fun fetchCategories() : List<JSONObject> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL("https://www.themealdb.com/api/json/v1/1/categories.php")
+            val connection = url.openConnection() as HttpURLConnection
+
+            val reader = BufferedReader(InputStreamReader(connection.inputStream))
+            val result = reader.readText()
+
+            val jsonArray = JSONObject(result).getJSONArray("categories")
+
+            val list = mutableListOf<JSONObject>()
+            for (i in 0 until jsonArray.length()) {
+                list.add(jsonArray.getJSONObject(i))
+            }
+
+            list
+
+        } catch (e: Exception) {
+            emptyList<JSONObject>()
+        }
+    }
+}

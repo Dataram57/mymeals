@@ -31,8 +31,10 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mymeals.db.MealRepository
+import com.example.mymeals.screens.CategoriesViewModel
 import com.example.mymeals.screens.FavouriteMealsViewModel
 import com.example.mymeals.screens.FavouriteMealsViewModelFactory
+import com.example.mymeals.screens.ScreenCategories
 import com.example.mymeals.screens.SearchViewModel
 import com.example.mymeals.screens.ViewMealViewModel
 import com.example.mymeals.screens.ViewMealViewModelFactory
@@ -111,6 +113,18 @@ class MainActivity : ComponentActivity() {
                                 onMealClick = { meal ->
                                     val mealJson = URLEncoder.encode(meal.toString(), "UTF-8")
                                     navController.navigate("view/$mealJson")
+                                },
+                                onCategoriesClick = {
+                                    navController.navigate("categories")
+                                }
+                            )
+                        }
+
+                        //categories
+                        composable("categories") {
+                            ScreenCategories(
+                                onCategoryClick = { category ->
+                                    navController.navigate("category/${category.optString("strCategory")}")
                                 }
                             )
                         }
