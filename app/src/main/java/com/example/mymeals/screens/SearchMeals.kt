@@ -1,6 +1,7 @@
 package com.example.mymeals.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,13 +54,18 @@ class SearchViewModel : ViewModel() {
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
+    var isLoading by mutableStateOf(false)
+        private set
+
     fun onQueryChange(newQuery: String) {
         query = newQuery
     }
 
     fun searchMeals() {
         viewModelScope.launch {
+            isLoading = true
             meals = searchMeals(query)
+            isLoading = false
         }
     }
 }
@@ -71,6 +77,7 @@ fun ScreenSearchMeals(
     onMealClick: (JSONObject) -> Unit,
     onCategoriesClick: () -> Unit
 ) {
+    val isLoading = viewModel.isLoading
     val query = viewModel.query
     val meals = viewModel.meals
 
@@ -122,25 +129,34 @@ fun ScreenSearchMeals(
 
             Spacer(Modifier.height(16.dp))
 
-            LazyColumn {
-                items(meals) { meal ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onMealClick(meal) }
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn {
+                    items(meals) { meal ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onMealClick(meal) }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
 
-                        AsyncImage(
-                            model = meal.getString("strMealThumb"),
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp)
-                        )
+                            AsyncImage(
+                                model = meal.getString("strMealThumb"),
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp)
+                            )
 
-                        Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(12.dp))
 
-                        Text(meal.getString("strMeal"))
+                            Text(meal.getString("strMeal"))
+                        }
                     }
                 }
             }
