@@ -4,12 +4,14 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -186,28 +188,25 @@ fun FavouriteMealItemView(
     meal: JSONObject,
     onOptionClick: (JSONObject) -> Unit
 ) {
-
     var expanded by remember { mutableStateOf(false) }
 
-    val scrollState = rememberScrollState()
-
+    val tags = meal.optString("strTags", "")
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotBlank() && it != "null" }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded } // toggle expanded
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(8.dp))
-            //.shadow(2.dp, RoundedCornerShape(8.dp))
             .padding(8.dp)
+            .clickable { expanded = !expanded } // kliknięcie rozsuwa sekcję
     ) {
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-
-            // Meal image
             AsyncImage(
                 model = meal.getString("strMealThumb"),
                 contentDescription = meal.getString("strMeal"),
@@ -219,7 +218,6 @@ fun FavouriteMealItemView(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // Meal title
                 Text(
                     text = meal.getString("strMeal"),
                     style = MaterialTheme.typography.titleMedium
@@ -227,41 +225,37 @@ fun FavouriteMealItemView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Tags example (strTags might be comma separated)
-                val tags = meal.optString("strTags", "").split(",").filter { it.isNotBlank() && it != "null" }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()               // musi wypełnić całą szerokość ekranu
-                        .horizontalScroll(scrollState) // scroll poziomy
-                ) {
+                // --- Tagi w wrap ---
+                Column {
+                    var currentRowWidth = 0.dp
+                    var row = mutableListOf<String>()
+                    val maxWidth = 300.dp
                     tags.forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                .padding(end = 4.dp)
-                        ) {
-                            Text(
-                                text = tag,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                        val tagWidth = 60.dp
+                        if (currentRowWidth + tagWidth > maxWidth) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                row.forEach { t -> TagItem(t) }
+                            }
+                            row = mutableListOf(tag)
+                            currentRowWidth = tagWidth
+                        } else {
+                            row.add(tag)
+                            currentRowWidth += tagWidth + 4.dp
+                        }
+                    }
+                    if (row.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            row.forEach { t -> TagItem(t) }
                         }
                     }
                 }
             }
         }
 
-        // Expanded section: ingredients
+        // --- Rozwijana sekcja składników ---
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
-
             Column(modifier = Modifier.padding(start = 8.dp)) {
-
                 Text(
                     text = "Ingredients:",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
@@ -269,7 +263,6 @@ fun FavouriteMealItemView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Example: strIngredient1, strIngredient2, ... up to 20
                 for (i in 1..20) {
                     val ingredient = meal.optString("strIngredient$i", "")
                     val measure = meal.optString("strMeasure$i", "")
@@ -283,6 +276,7 @@ fun FavouriteMealItemView(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // --- Kliknięcie w szczegóły ---
                 Text(
                     text = "Click to view details",
                     modifier = Modifier.clickable { onOptionClick(meal) },
@@ -290,6 +284,24 @@ fun FavouriteMealItemView(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun TagItem(tag: String) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(4.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = tag,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
@@ -343,21 +355,23 @@ fun FilterDialogButton(
             onDismissRequest = { showDialog = false },
             title = { Text(label) },
             text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // All option
-                    Text(
-                        text = "All",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onOptionSelected(null)
-                                showDialog = false
-                            }
-                            .padding(8.dp)
-                    )
-                    Column(modifier = Modifier.verticalScroll(scrollState)) {
-                        options.forEach { option ->
-                            Log.d("com.example.mymeals", option)
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 300.dp),
+                    content = {
+                        item {
+                            Text(
+                                text = "All",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onOptionSelected(null)
+                                        showDialog = false
+                                    }
+                                    .padding(8.dp)
+                            )
+                        }
+
+                        items(options) { option ->
                             Text(
                                 text = option,
                                 modifier = Modifier
@@ -370,7 +384,7 @@ fun FilterDialogButton(
                             )
                         }
                     }
-                }
+                )
             },
             confirmButton = {
                 TextButton(onClick = { showDialog = false }) {
