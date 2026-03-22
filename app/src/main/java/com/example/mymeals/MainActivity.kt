@@ -29,7 +29,12 @@ import androidx.compose.ui.Modifier
 import com.example.mymeals.db.FavouriteMeal
 import java.net.URLDecoder
 import java.net.URLEncoder
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mymeals.screens.FavouriteMealsViewModel
+import com.example.mymeals.screens.FavouriteMealsViewModelFactory
+import com.example.mymeals.screens.SearchViewModel
+import com.example.mymeals.screens.ViewMealViewModel
+import com.example.mymeals.screens.ViewMealViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -55,14 +60,17 @@ class MainActivity : ComponentActivity() {
                 MyMealsTheme {
 
                     val navController = rememberNavController()
-                    var reloadDb by remember { mutableStateOf(true) }
 
                     NavHost(navController = navController, startDestination = "favourites") {
 
                         composable("favourites") {
-                            //reload db
+
+                            val viewModel: FavouriteMealsViewModel = viewModel(
+                                factory = FavouriteMealsViewModelFactory(mealDao)
+                            )
+
                             ScreenFavouriteMeals(
-                                mealDao = mealDao,
+                                viewModel = viewModel,
                                 onMealClick = { meal ->
                                     val mealJson = URLEncoder.encode(meal.toString(), "UTF-8")
                                     navController.navigate("view/$mealJson")
@@ -70,12 +78,8 @@ class MainActivity : ComponentActivity() {
                                 onAddClick = {
                                     navController.navigate("search")
                                 },
-                                onMoreClick = {},
-                                reloadDb = reloadDb
+                                onMoreClick = {}
                             )
-
-                            // Reset reloadDb after passing it once
-                            if (reloadDb) reloadDb = false
                         }
 
                         composable(
@@ -85,20 +89,27 @@ class MainActivity : ComponentActivity() {
                             val mealJson = backStackEntry.arguments?.getString("meal")
                             val meal = mealJson?.let { JSONObject(URLDecoder.decode(it, "UTF-8")) }
                             if (meal != null) {
+                                val viewModel: ViewMealViewModel = viewModel(
+                                    factory = ViewMealViewModelFactory(mealDao)
+                                )
+
                                 ScreenViewMeal(
-                                    mealDao = mealDao,
+                                    viewModel = viewModel,
                                     meal = meal,
-                                    onDbAltered = { reloadDb = it })
+                                    onDbAltered = { /* opcjonalnie */ }
+                                )
                             }
                         }
 
                         composable("search") {
+                            val viewModel: SearchViewModel = viewModel()
+
                             ScreenSearchMeals(
+                                viewModel = viewModel,
                                 onMealClick = { meal ->
                                     val mealJson = URLEncoder.encode(meal.toString(), "UTF-8")
                                     navController.navigate("view/$mealJson")
                                 }
-
                             )
                         }
 

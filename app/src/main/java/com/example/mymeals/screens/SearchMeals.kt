@@ -38,62 +38,84 @@ import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.mymeals.api.searchMeals
+import kotlinx.coroutines.launch
 import org.json.JSONObject
+
+class SearchViewModel : ViewModel() {
+
+    var query by mutableStateOf("")
+        private set
+
+    var meals by mutableStateOf<List<JSONObject>>(emptyList())
+        private set
+
+    var isLoading by mutableStateOf(false)
+        private set
+
+    fun onQueryChange(newQuery: String) {
+        query = newQuery
+    }
+
+    fun searchMeals() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                meals = searchMeals(query)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenSearchMeals(
-    onMealClick : (JSONObject) -> Unit
+    viewModel: SearchViewModel,
+    onMealClick: (JSONObject) -> Unit
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var meals by rememberSaveable { mutableStateOf<List<JSONObject>>(emptyList()) }
-    val scope = rememberCoroutineScope()
+    val query = viewModel.query
+    val meals = viewModel.meals
 
-    Scaffold (
+    Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Meal Search") }
-            )
+            TopAppBar(title = { Text("Meal Search") })
         }
-    )
-    { padding ->
+    ) { padding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)  // your inner padding
+                .padding(16.dp)
         ) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 OutlinedTextField(
                     value = query,
-                    onValueChange = { query = it },
+                    onValueChange = viewModel::onQueryChange,
                     label = { Text("Search meal") },
                     singleLine = true,
                     modifier = Modifier
-                        .weight(1f) // fills remaining width
+                        .weight(1f)
                         .padding(end = 8.dp),
+                    keyboardActions = KeyboardActions(
+                        onSearch = { viewModel.searchMeals() }
+                    ),
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Search
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            scope.launch {
-                                meals = searchMeals(query)
-                            }
-                        }
                     )
                 )
 
-                Button(
-                    onClick = {
-                        scope.launch {
-                            meals = searchMeals(query)
-                        }
-                    }
-                ) {
+                Button(onClick = { viewModel.searchMeals() }) {
                     Text("Search")
                 }
             }
@@ -101,40 +123,27 @@ fun ScreenSearchMeals(
             Spacer(Modifier.height(16.dp))
 
             LazyColumn {
-
                 items(meals) { meal ->
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                onMealClick(meal)
-                            }
+                            .clickable { onMealClick(meal) }
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
                         AsyncImage(
                             model = meal.getString("strMealThumb"),
-                            contentDescription = meal.getString("strMeal"),
-                            modifier = Modifier
-                                .size(80.dp)
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp)
                         )
 
                         Spacer(Modifier.width(12.dp))
 
-                        Text(
-                            text = meal.getString("strMeal"),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-
+                        Text(meal.getString("strMeal"))
                     }
                 }
             }
         }
     }
 }
-
-
-
-

@@ -1,5 +1,4 @@
 package com.example.mymeals.screens
-
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,8 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
-import com.example.mymeals.db.MealDao
-import org.json.JSONObject
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -44,59 +41,77 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 
+import androidx.compose.runtime.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.mymeals.api.fetchMealById
+import com.example.mymeals.db.MealDao
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+
+class FavouriteMealsViewModel(
+    private val mealDao: MealDao
+) : ViewModel() {
+
+    var meals by mutableStateOf<List<JSONObject>>(emptyList())
+        private set
+
+    var isLoading by mutableStateOf(false)
+        private set
+
+    fun loadMeals() {
+        viewModelScope.launch {
+            isLoading = true
+
+            val ids = mealDao.getAllMeals().map { it.idMeal }
+
+            val loadedMeals = mutableListOf<JSONObject>()
+
+            for (id in ids) {
+                val meal = fetchMealById(id)
+                if (meal != null) {
+                    loadedMeals.add(
+                        meal.getJSONArray("meals").getJSONObject(0)
+                    )
+                }
+            }
+
+            meals = loadedMeals
+            isLoading = false
+        }
+    }
+
+    fun refresh() {
+        loadMeals()
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenFavouriteMeals(
-    mealDao: MealDao,
+    viewModel: FavouriteMealsViewModel,
     onMealClick: (JSONObject) -> Unit,
     onAddClick: () -> Unit,
     onMoreClick: () -> Unit,
-    reloadDb: Boolean,
     modifier: Modifier = Modifier
 ) {
 
-    var meals by rememberSaveable { mutableStateOf<List<JSONObject>>(emptyList()) }
+    val meals = viewModel.meals
 
-    LaunchedEffect(reloadDb) {
-        if (reloadDb || meals.isEmpty()) {
-            var ids = getSavedMealIds(mealDao)
-
-            val loadedMeals = mutableListOf<JSONObject>()
-
-            meals = emptyList()
-            for (id in ids) {
-                val meal = fetchMealById(id)
-                if (meal != null) loadedMeals.add(meal.getJSONArray("meals").getJSONObject(0))
-            }
-
-            meals = loadedMeals
-        }
+    // 🔥 zamiast LaunchedEffect(reloadDb)
+    LaunchedEffect(Unit) {
+        viewModel.loadMeals()
     }
-
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Favourite Meals") },
                 actions = {
-
                     IconButton(onClick = onAddClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add new meal."
-                        )
+                        Icon(Icons.Default.Add, contentDescription = "Add")
                     }
-
-                    /*
-                    IconButton(onClick = onMoreClick) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
-                        )
-                    }
-                    */
-
                 }
             )
         }
@@ -112,14 +127,7 @@ fun ScreenFavouriteMeals(
                 )
             }
         }
-
     }
-}
-
-
-
-suspend fun getSavedMealIds(mealDao: MealDao): List<String> {
-    return mealDao.getAllMeals().map { it.idMeal }
 }
 
 @Composable
@@ -223,5 +231,15 @@ fun FavouriteMealItemView(
                 )
             }
         }
+    }
+}
+
+
+class FavouriteMealsViewModelFactory(
+    private val mealDao: MealDao
+) : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return FavouriteMealsViewModel(mealDao) as T
     }
 }

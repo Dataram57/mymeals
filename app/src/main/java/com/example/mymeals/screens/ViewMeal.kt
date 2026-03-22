@@ -45,11 +45,68 @@ import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.FavouriteMeal
 import com.example.mymeals.db.MealDao
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+//import kotlinx.coroutines.launch
+class ViewMealViewModel(
+    private val mealDao: MealDao
+) : ViewModel() {
+
+    var meal by mutableStateOf<JSONObject?>(null)
+        private set
+
+    var isFavourite by mutableStateOf(false)
+        private set
+
+    var isLoading by mutableStateOf(true)
+        private set
+
+    fun setMealData(newMeal: JSONObject) {
+        meal = newMeal
+        checkIfFavourite()
+    }
+
+    private fun checkIfFavourite() {
+        val currentMeal = meal ?: return
+
+        viewModelScope.launch {
+            val result = mealDao.getMeal(currentMeal.getString("idMeal"))
+            isFavourite = result != null
+            isLoading = false
+        }
+    }
+
+    fun toggleFavourite(onDbAltered: (Boolean) -> Unit) {
+        val currentMeal = meal ?: return
+
+        viewModelScope.launch {
+            isLoading = true
+
+            val wasFavourite = isFavourite
+
+            if (isFavourite) {
+                mealDao.deleteMeal(currentMeal.getString("idMeal"))
+            } else {
+                mealDao.insertMeal(
+                    FavouriteMeal(currentMeal.getString("idMeal"))
+                )
+            }
+
+            isFavourite = !isFavourite
+            isLoading = false
+
+            // 🔥 inform parent
+            onDbAltered(wasFavourite != isFavourite)
+        }
+    }
+}
 
 @Composable
 fun ScreenViewMeal(
-    meal: JSONObject? = null,
-    mealDao: MealDao,
+    viewModel: ViewMealViewModel,
+    meal: JSONObject?,
     onDbAltered: (Boolean) -> Unit
 ) {
     if (meal == null) {
@@ -57,34 +114,34 @@ fun ScreenViewMeal(
         return
     }
 
-    val context = LocalContext.current // ✅ Get context once inside composable
+    val context = LocalContext.current
 
-    val ingredients = remember {
+    val vmMeal = viewModel.meal
+    val isFavourite = viewModel.isFavourite
+    val isLoading = viewModel.isLoading
+
+    // 🔥 ustaw meal tylko raz
+    LaunchedEffect(meal) {
+        viewModel.setMealData(meal)
+    }
+
+    val ingredients = remember(meal) {
         (1..20).mapNotNull { i ->
-            val ingredient = meal.optString("strIngredient$i").takeIf { it.isNotBlank() && it != "null" }
-            val measure = meal.optString("strMeasure$i").takeIf { it.isNotBlank() }
-            if (ingredient != null && measure != null) "$ingredient - $measure" else null
+            val ingredient = meal.optString("strIngredient$i")
+                .takeIf { it.isNotBlank() && it != "null" }
+
+            val measure = meal.optString("strMeasure$i")
+                .takeIf { it.isNotBlank() }
+
+            if (ingredient != null && measure != null) {
+                "$ingredient - $measure"
+            } else null
         }
     }
 
+    Scaffold {
+            padding ->
 
-    var isFavourite by remember { mutableStateOf(false) }
-    var wasFavourite by remember { mutableStateOf(false) }
-    var isDisabled by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        val r = mealDao.getMeal(meal.getString("idMeal"))
-        if (r != null) {
-            isFavourite = true
-            wasFavourite = true
-        }
-        isDisabled = false
-    }
-    val scope = rememberCoroutineScope()
-
-    Scaffold(
-
-    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,40 +150,25 @@ fun ScreenViewMeal(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.TopEnd
             ) {
+
                 coil.compose.AsyncImage(
                     model = meal.optString("strMealThumb"),
                     contentDescription = meal.optString("strMeal"),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
+                        .clip(RoundedCornerShape(12.dp))
                 )
 
-                // ⭐ Star Button
                 IconButton(
                     onClick = {
-                        if (isDisabled) return@IconButton
-
-                        scope.launch {
-                            isDisabled = true
-
-                            if (isFavourite) {
-                                mealDao.deleteMeal(meal.getString("idMeal"))
-                            } else {
-                                mealDao.insertMeal(
-                                    FavouriteMeal(meal.getString("idMeal"))
-                                )
-                            }
-                            isFavourite = !isFavourite
-                            isDisabled = false
-
-                            //db altered
-                            onDbAltered(wasFavourite != isFavourite)
+                        if (!isLoading) {
+                            viewModel.toggleFavourite(onDbAltered)
                         }
                     },
                     modifier = Modifier
@@ -140,7 +182,10 @@ fun ScreenViewMeal(
                     Icon(
                         imageVector = Icons.Default.Star,
                         contentDescription = "Star Meal",
-                        tint = if (isFavourite) Color(0xFFFFD700) else Color.LightGray
+                        tint = if (isFavourite)
+                            Color(0xFFFFD700)
+                        else
+                            Color.LightGray
                     )
                 }
             }
@@ -157,34 +202,20 @@ fun ScreenViewMeal(
 
             Text(
                 text = "${meal.optString("strCategory")} | ${meal.optString("strArea")}",
-                style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = "Ingredients:",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
-            ingredients.forEach { item ->
-                Text(text = "• $item", style = MaterialTheme.typography.bodyMedium)
+            Text("Ingredients:", fontWeight = FontWeight.Bold)
+            ingredients.forEach {
+                Text("• $it")
             }
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = "Instructions:",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = meal.optString("strInstructions"),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text("Instructions:", fontWeight = FontWeight.Bold)
+            Text(meal.optString("strInstructions"))
 
             Spacer(Modifier.height(16.dp))
 
@@ -195,8 +226,9 @@ fun ScreenViewMeal(
                     color = Color(0xFF1A73E8),
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, youtubeUrl.toUri())
-                        context.startActivity(intent) // ✅ use context from composable
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, youtubeUrl.toUri())
+                        )
                     }
                 )
             }
@@ -210,13 +242,22 @@ fun ScreenViewMeal(
                     color = Color(0xFF1A73E8),
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, sourceUrl.toUri())
-                        context.startActivity(intent) // ✅ same here
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, sourceUrl.toUri())
+                        )
                     }
                 )
             }
-
-            Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+
+class ViewMealViewModelFactory(
+    private val mealDao: MealDao
+) : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return ViewMealViewModel(mealDao) as T
     }
 }
