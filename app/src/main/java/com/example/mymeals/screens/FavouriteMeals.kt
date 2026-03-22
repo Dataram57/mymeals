@@ -47,11 +47,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mymeals.api.fetchMealById
 import com.example.mymeals.db.MealDao
+import com.example.mymeals.db.MealRepository
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class FavouriteMealsViewModel(
-    private val mealDao: MealDao
+    private val repository: MealRepository
 ) : ViewModel() {
 
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
@@ -62,23 +63,7 @@ class FavouriteMealsViewModel(
 
     fun loadMeals() {
         viewModelScope.launch {
-            isLoading = true
-
-            val ids = mealDao.getAllMeals().map { it.idMeal }
-
-            val loadedMeals = mutableListOf<JSONObject>()
-
-            for (id in ids) {
-                val meal = fetchMealById(id)
-                if (meal != null) {
-                    loadedMeals.add(
-                        meal.getJSONArray("meals").getJSONObject(0)
-                    )
-                }
-            }
-
-            meals = loadedMeals
-            isLoading = false
+            meals = repository.getFavouriteMeals()
         }
     }
 
@@ -236,10 +221,10 @@ fun FavouriteMealItemView(
 
 
 class FavouriteMealsViewModelFactory(
-    private val mealDao: MealDao
+    private val repository: MealRepository
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return FavouriteMealsViewModel(mealDao) as T
+        return FavouriteMealsViewModel(repository) as T
     }
 }

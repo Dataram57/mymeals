@@ -49,9 +49,11 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.mymeals.db.MealRepository
+
 //import kotlinx.coroutines.launch
 class ViewMealViewModel(
-    private val mealDao: MealDao
+    private val repository: MealRepository
 ) : ViewModel() {
 
     var meal by mutableStateOf<JSONObject?>(null)
@@ -63,6 +65,13 @@ class ViewMealViewModel(
     var isLoading by mutableStateOf(true)
         private set
 
+    fun loadMeal(id: String) {
+        viewModelScope.launch {
+            meal = repository.getMealById(id)
+            isFavourite = repository.isFavourite(id)
+        }
+    }
+
     fun setMealData(newMeal: JSONObject) {
         meal = newMeal
         checkIfFavourite()
@@ -72,32 +81,27 @@ class ViewMealViewModel(
         val currentMeal = meal ?: return
 
         viewModelScope.launch {
-            val result = mealDao.getMeal(currentMeal.getString("idMeal"))
-            isFavourite = result != null
+            val result = repository.isFavourite(currentMeal.getString("idMeal"))
+            isFavourite = result
             isLoading = false
         }
     }
 
     fun toggleFavourite(onDbAltered: (Boolean) -> Unit) {
-        val currentMeal = meal ?: return
+        val id = meal?.getString("idMeal") ?: return
 
         viewModelScope.launch {
-            isLoading = true
-
             val wasFavourite = isFavourite
 
             if (isFavourite) {
-                mealDao.deleteMeal(currentMeal.getString("idMeal"))
+                repository.removeFavourite(id)
             } else {
-                mealDao.insertMeal(
-                    FavouriteMeal(currentMeal.getString("idMeal"))
-                )
+                repository.addFavourite(id)
             }
 
             isFavourite = !isFavourite
-            isLoading = false
 
-            // 🔥 inform parent
+            // powiadom UI o zmianie
             onDbAltered(wasFavourite != isFavourite)
         }
     }
@@ -254,10 +258,10 @@ fun ScreenViewMeal(
 
 
 class ViewMealViewModelFactory(
-    private val mealDao: MealDao
+    private val repository: MealRepository
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ViewMealViewModel(mealDao) as T
+        return ViewMealViewModel(repository) as T
     }
 }

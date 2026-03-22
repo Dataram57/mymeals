@@ -53,21 +53,13 @@ class SearchViewModel : ViewModel() {
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
-    var isLoading by mutableStateOf(false)
-        private set
-
     fun onQueryChange(newQuery: String) {
         query = newQuery
     }
 
     fun searchMeals() {
         viewModelScope.launch {
-            isLoading = true
-            try {
-                meals = searchMeals(query)
-            } finally {
-                isLoading = false
-            }
+            meals = searchMeals(query)
         }
     }
 }

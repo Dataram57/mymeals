@@ -30,6 +30,7 @@ import com.example.mymeals.db.FavouriteMeal
 import java.net.URLDecoder
 import java.net.URLEncoder
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mymeals.db.MealRepository
 import com.example.mymeals.screens.FavouriteMealsViewModel
 import com.example.mymeals.screens.FavouriteMealsViewModelFactory
 import com.example.mymeals.screens.SearchViewModel
@@ -49,7 +50,8 @@ class MainActivity : ComponentActivity() {
             AppDatabase::class.java,
             "meals_db"
         ).build()
-        mealDao = db.mealDao()
+
+        val repository = MealRepository(db.mealDao())
 
         //rendering
         enableEdgeToEdge()
@@ -66,7 +68,7 @@ class MainActivity : ComponentActivity() {
                         composable("favourites") {
 
                             val viewModel: FavouriteMealsViewModel = viewModel(
-                                factory = FavouriteMealsViewModelFactory(mealDao)
+                                factory = FavouriteMealsViewModelFactory(repository)
                             )
 
                             ScreenFavouriteMeals(
@@ -90,7 +92,7 @@ class MainActivity : ComponentActivity() {
                             val meal = mealJson?.let { JSONObject(URLDecoder.decode(it, "UTF-8")) }
                             if (meal != null) {
                                 val viewModel: ViewMealViewModel = viewModel(
-                                    factory = ViewMealViewModelFactory(mealDao)
+                                    factory = ViewMealViewModelFactory(repository = repository)
                                 )
 
                                 ScreenViewMeal(
