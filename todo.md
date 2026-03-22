@@ -30,13 +30,6 @@ nowych inspiracji, zdjęć potraw czy składników.
     - Filter by mentioned `strCategory`
     - Filter by mentioned `strTags`
     - Filter by mentioned `strIngredientX`
-- Panel favourite meals:
-  - Filture kategorie, składniki
-    - Panel Categories (`https://www.themealdb.com/api/json/v1/1/categories.php`)
-      - --> Panel MealCategories:
-    - Panel MealCategories `https://www.themealdb.com/api/json/v1/1/filter.php?c=Seafood`
-      - --> Panel ViewMeal:
-        - Requires additional fetch/fetch-screen to be performed (`https://www.themealdb.com/api/json/v1/1/lookup.php?i={id}`)
 - DB:
   - save more data than just links/ids, 
 
