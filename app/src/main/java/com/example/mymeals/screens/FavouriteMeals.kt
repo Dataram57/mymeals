@@ -3,6 +3,7 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,17 +62,77 @@ class FavouriteMealsViewModel(
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
-    var isLoading by mutableStateOf(false)
+    var filteredMeals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
+
+    // Dynamiczne listy filtrów
+    var categories by mutableStateOf<List<String>>(emptyList())
+        private set
+    var tags by mutableStateOf<List<String>>(emptyList())
+        private set
+    var ingredients by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    var selectedCategory by mutableStateOf<String?>(null)
+    var selectedTag by mutableStateOf<String?>(null)
+    var selectedIngredient by mutableStateOf<String?>(null)
 
     fun loadMeals() {
         viewModelScope.launch {
             meals = repository.getFavouriteMeals()
+            buildFilterOptions()
+            applyFilters()
         }
     }
 
-    fun refresh() {
-        loadMeals()
+    private fun buildFilterOptions() {
+        // Kategorie
+        categories = meals.mapNotNull { it.optString("strCategory").takeIf { it.isNotBlank() && it != "null" } }
+            .distinct()
+
+        // Tagi
+        tags = meals.flatMap {
+            it.optString("strTags", "")
+                .split(",")
+                .map { tag -> tag.trim() }
+                .filter { tag -> tag.isNotBlank() && tag != "null" }
+        }.distinct()
+
+        // Składniki
+        ingredients = meals.flatMap { meal ->
+            (1..20).mapNotNull { i ->
+                meal.optString("strIngredient$i").takeIf { it.isNotBlank() && it != "null" }
+            }
+        }.distinct()
+    }
+
+    fun applyFilters() {
+        filteredMeals = meals.filter { meal ->
+            val categoryMatches = selectedCategory?.let { it == meal.optString("strCategory") } ?: true
+            val tagMatches = selectedTag?.let { tag ->
+                meal.optString("strTags", "").split(",").any { it.trim() == tag }
+            } ?: true
+            val ingredientMatches = selectedIngredient?.let { ingredient ->
+                (1..20).any { i -> meal.optString("strIngredient$i", "").equals(ingredient, true) }
+            } ?: true
+
+            categoryMatches && tagMatches && ingredientMatches
+        }
+    }
+
+    fun setCategoryFilter(category: String?) {
+        selectedCategory = category
+        applyFilters()
+    }
+
+    fun setTagFilter(tag: String?) {
+        selectedTag = tag
+        applyFilters()
+    }
+
+    fun setIngredientFilter(ingredient: String?) {
+        selectedIngredient = ingredient
+        applyFilters()
     }
 }
 
@@ -82,7 +146,7 @@ fun ScreenFavouriteMeals(
     modifier: Modifier = Modifier
 ) {
 
-    val meals = viewModel.meals
+    val meals = viewModel.filteredMeals
 
     // 🔥 zamiast LaunchedEffect(reloadDb)
     LaunchedEffect(Unit) {
@@ -102,14 +166,16 @@ fun ScreenFavouriteMeals(
         }
     ) { padding ->
 
-        LazyColumn(
-            modifier = modifier.padding(padding)
-        ) {
-            items(meals) { meal ->
-                FavouriteMealItemView(
-                    meal = meal,
-                    onOptionClick = onMealClick
-                )
+        Column(modifier = Modifier.padding(padding)) {
+            FilterRow(viewModel = viewModel)
+
+            LazyColumn {
+                items(meals) { meal ->
+                    FavouriteMealItemView(
+                        meal = meal,
+                        onOptionClick = onMealClick
+                    )
+                }
             }
         }
     }
@@ -122,6 +188,9 @@ fun FavouriteMealItemView(
 ) {
 
     var expanded by remember { mutableStateOf(false) }
+
+    val scrollState = rememberScrollState()
+
 
     Column(
         modifier = Modifier
@@ -160,7 +229,12 @@ fun FavouriteMealItemView(
 
                 // Tags example (strTags might be comma separated)
                 val tags = meal.optString("strTags", "").split(",").filter { it.isNotBlank() && it != "null" }
-                Row {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()               // musi wypełnić całą szerokość ekranu
+                        .horizontalScroll(scrollState) // scroll poziomy
+                ) {
                     tags.forEach { tag ->
                         Box(
                             modifier = Modifier
@@ -216,6 +290,94 @@ fun FavouriteMealItemView(
                 )
             }
         }
+    }
+}
+
+
+@Composable
+fun FilterRow(viewModel: FavouriteMealsViewModel) {
+    Row(modifier = Modifier.padding(8.dp)) {
+        FilterDialogButton(
+            label = "Category",
+            options = viewModel.categories,
+            selectedOption = viewModel.selectedCategory,
+            onOptionSelected = { viewModel.setCategoryFilter(it) }
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        FilterDialogButton(
+            label = "Tag",
+            options = viewModel.tags,
+            selectedOption = viewModel.selectedTag,
+            onOptionSelected = { viewModel.setTagFilter(it) }
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        FilterDialogButton(
+            label = "Ingredient",
+            options = viewModel.ingredients,
+            selectedOption = viewModel.selectedIngredient,
+            onOptionSelected = { viewModel.setIngredientFilter(it) }
+        )
+    }
+}
+
+@Composable
+fun FilterDialogButton(
+    label: String,
+    options: List<String>,
+    selectedOption: String?,
+    onOptionSelected: (String?) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+
+    Button(onClick = { showDialog = true }) {
+        Text(selectedOption ?: label)
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(label) },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // All option
+                    Text(
+                        text = "All",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onOptionSelected(null)
+                                showDialog = false
+                            }
+                            .padding(8.dp)
+                    )
+                    Column(modifier = Modifier.verticalScroll(scrollState)) {
+                        options.forEach { option ->
+                            Log.d("com.example.mymeals", option)
+                            Text(
+                                text = option,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onOptionSelected(option)
+                                        showDialog = false
+                                    }
+                                    .padding(8.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }
 
