@@ -170,7 +170,6 @@ fun ScreenFavouriteMeals(
     viewModel: FavouriteMealsViewModel,
     onMealClick: (JSONObject) -> Unit,
     onAddClick: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
 
     val meals = viewModel.filteredMeals

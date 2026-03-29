@@ -59,13 +59,14 @@ class MainActivity : ComponentActivity() {
         //rendering
         enableEdgeToEdge()
         setContent {
+            //wrap the content and draw on dark/light screen
             Box(
                 modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             ) {
+                //draw using pre-defined theme
                 MyMealsTheme {
-
+                    //Navigation via pseudo urls
                     val navController = rememberNavController()
-
                     NavHost(navController = navController, startDestination = "favourites") {
 
                         //`FavouriteMeals.kt`
@@ -153,7 +154,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
                     }
                 }
             }
