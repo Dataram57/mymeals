@@ -46,6 +46,14 @@ import com.example.mymeals.api.searchMeals
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+//================================================================
+//ViewModel - Factory
+
+//no dependencies required
+
+//================================================================
+//ViewModel
+
 class SearchViewModel : ViewModel() {
 
     var query by mutableStateOf("")
@@ -69,6 +77,9 @@ class SearchViewModel : ViewModel() {
         }
     }
 }
+
+//================================================================
+//Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

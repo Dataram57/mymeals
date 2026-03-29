@@ -20,6 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
+//================================================================
+//ViewModel - Factory
+
+//no dependencies required
+
+//================================================================
+//ViewModel
 
 class CategoriesViewModel : ViewModel() {
 
@@ -38,6 +45,8 @@ class CategoriesViewModel : ViewModel() {
     }
 }
 
+//================================================================
+//Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

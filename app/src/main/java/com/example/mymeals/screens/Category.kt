@@ -34,10 +34,25 @@ import androidx.lifecycle.ViewModelProvider
 import coil.compose.AsyncImage
 import com.example.mymeals.api.fetchMealById
 
+//================================================================
+//ViewModel - Factory
+
+class CategoryViewModelFactory(
+    private val categoryName: String
+) : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return CategoryViewModel(categoryName) as T
+    }
+}
+
+//================================================================
+//ViewModel
 
 class CategoryViewModel(
     private val categoryName: String
-) : ViewModel() {
+)
+    : ViewModel() {
 
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
@@ -58,14 +73,8 @@ class CategoryViewModel(
     }
 }
 
-class CategoryViewModelFactory(
-    private val categoryName: String
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return CategoryViewModel(categoryName) as T
-    }
-}
+//================================================================
+//Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,6 +133,9 @@ fun ScreenCategory(
         }
     }
 }
+
+//------------------------------------------------
+//GUI - Category
 
 @Composable
 fun CategoryMealItem(meal: JSONObject, onClick: () -> Unit) {

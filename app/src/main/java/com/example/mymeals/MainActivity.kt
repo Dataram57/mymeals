@@ -44,8 +44,6 @@ import com.example.mymeals.screens.ViewMealViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var mealDao: MealDao
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -70,6 +68,7 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "favourites") {
 
+                        //`FavouriteMeals.kt`
                         composable("favourites") {
 
                             val viewModel: FavouriteMealsViewModel = viewModel(
@@ -84,11 +83,11 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAddClick = {
                                     navController.navigate("search")
-                                },
-                                onMoreClick = {}
+                                }
                             )
                         }
 
+                        //`ViewMeal.kt`
                         composable(
                             route = "view/{meal}",
                             arguments = listOf(navArgument("meal") { type = NavType.StringType })
@@ -103,11 +102,14 @@ class MainActivity : ComponentActivity() {
                                 ScreenViewMeal(
                                     viewModel = viewModel,
                                     meal = meal,
-                                    onDbAltered = { /* opcjonalnie */ }
+                                    onDbAltered = {
+                                        //Not used
+                                    }
                                 )
                             }
                         }
 
+                        //`SearchMeals.kt`
                         composable("search") {
                             val viewModel: SearchViewModel = viewModel()
 
@@ -123,7 +125,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        //categories
+                        //`Categories.kt`
                         composable("categories") {
                             ScreenCategories(
                                 onCategoryClick = { category ->
@@ -132,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        //`Category.kt`
                         composable(
                             route = "category/{categoryName}",
                             arguments = listOf(navArgument("categoryName") { type = NavType.StringType })

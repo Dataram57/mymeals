@@ -27,23 +27,6 @@ suspend fun searchMeals(query: String): List<JSONObject> {
             }
 
             list
-            /*
-            val meals = mutableListOf<Meal>()
-
-            for (i in 0 until mealsArray.length()) {
-                val obj = mealsArray.getJSONObject(i)
-
-                meals.add(
-                    Meal(
-                        idMeal = obj.getString("idMeal"),
-                        strMeal = obj.getString("strMeal"),
-                        strMealThumb = obj.getString("strMealThumb")
-                    )
-                )
-            }
-
-            meals
-            */
 
         } catch (e: Exception) {
             emptyList<JSONObject>()
@@ -53,7 +36,6 @@ suspend fun searchMeals(query: String): List<JSONObject> {
 
 suspend fun fetchMealById(id: String): JSONObject? {
     return withContext(Dispatchers.IO) {
-
         try {
             val url = URL("https://www.themealdb.com/api/json/v1/1/lookup.php?i=$id")
             val connection = url.openConnection() as HttpURLConnection
@@ -62,17 +44,6 @@ suspend fun fetchMealById(id: String): JSONObject? {
             val jsonText = reader.readText()
 
             JSONObject(jsonText)
-
-            /*
-            val mealsArray = json.getJSONArray("meals")
-            val obj = mealsArray.getJSONObject(0)
-
-            Meal(
-                idMeal = obj.getString("idMeal"),
-                strMeal = obj.getString("strMeal"),
-                strMealThumb = obj.getString("strMealThumb")
-            )
-            */
 
         } catch (e: Exception) {
             null
@@ -146,3 +117,6 @@ suspend fun fetchCategory(categoryName : String) : List<JSONObject> {
         }
     }
 }
+
+
+

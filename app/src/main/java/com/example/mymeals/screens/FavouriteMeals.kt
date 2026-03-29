@@ -57,17 +57,39 @@ import com.example.mymeals.db.MealRepository
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+//================================================================
+//ViewModel - Factory
+
+class FavouriteMealsViewModelFactory(
+    private val repository: MealRepository
+)
+    : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return FavouriteMealsViewModel(repository) as T
+    }
+}
+
+//================================================================
+//ViewModel
+
 class FavouriteMealsViewModel(
     private val repository: MealRepository
-) : ViewModel() {
+)
+    : ViewModel() {
 
+    //All meals
     var meals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
+    //================================================================
+    //Filters
+
+    //Filtered meals
     var filteredMeals by mutableStateOf<List<JSONObject>>(emptyList())
         private set
 
-    // Dynamiczne listy filtrów
+    //Filters
     var categories by mutableStateOf<List<String>>(emptyList())
         private set
     var tags by mutableStateOf<List<String>>(emptyList())
@@ -75,9 +97,13 @@ class FavouriteMealsViewModel(
     var ingredients by mutableStateOf<List<String>>(emptyList())
         private set
 
+    //States Filter Selectors
     var selectedCategory by mutableStateOf<String?>(null)
     var selectedTag by mutableStateOf<String?>(null)
     var selectedIngredient by mutableStateOf<String?>(null)
+
+    //================================================================
+    //Functions
 
     fun loadMeals() {
         viewModelScope.launch {
@@ -88,11 +114,9 @@ class FavouriteMealsViewModel(
     }
 
     private fun buildFilterOptions() {
-        // Kategorie
         categories = meals.mapNotNull { it.optString("strCategory").takeIf { it.isNotBlank() && it != "null" } }
             .distinct()
 
-        // Tagi
         tags = meals.flatMap {
             it.optString("strTags", "")
                 .split(",")
@@ -100,7 +124,6 @@ class FavouriteMealsViewModel(
                 .filter { tag -> tag.isNotBlank() && tag != "null" }
         }.distinct()
 
-        // Składniki
         ingredients = meals.flatMap { meal ->
             (1..20).mapNotNull { i ->
                 meal.optString("strIngredient$i").takeIf { it.isNotBlank() && it != "null" }
@@ -138,20 +161,22 @@ class FavouriteMealsViewModel(
     }
 }
 
+//================================================================
+//Screen
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenFavouriteMeals(
     viewModel: FavouriteMealsViewModel,
     onMealClick: (JSONObject) -> Unit,
     onAddClick: () -> Unit,
-    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
     val meals = viewModel.filteredMeals
 
-    // 🔥 zamiast LaunchedEffect(reloadDb)
     LaunchedEffect(Unit) {
+        //instead of LaunchedEffect(reloadDb)
         viewModel.loadMeals()
     }
 
@@ -183,6 +208,9 @@ fun ScreenFavouriteMeals(
     }
 }
 
+//------------------------------------------------
+//GUI - Specific Meal Item
+
 @Composable
 fun FavouriteMealItemView(
     meal: JSONObject,
@@ -201,7 +229,7 @@ fun FavouriteMealItemView(
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(8.dp))
             .padding(8.dp)
-            .clickable { expanded = !expanded } // kliknięcie rozsuwa sekcję
+            .clickable { expanded = !expanded }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -225,7 +253,6 @@ fun FavouriteMealItemView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // --- Tagi w wrap ---
                 Column {
                     var currentRowWidth = 0.dp
                     var row = mutableListOf<String>()
@@ -252,7 +279,6 @@ fun FavouriteMealItemView(
             }
         }
 
-        // --- Rozwijana sekcja składników ---
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
             Column(modifier = Modifier.padding(start = 8.dp)) {
@@ -276,7 +302,6 @@ fun FavouriteMealItemView(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // --- Kliknięcie w szczegóły ---
                 Text(
                     text = "Click to view details",
                     modifier = Modifier.clickable { onOptionClick(meal) },
@@ -286,6 +311,9 @@ fun FavouriteMealItemView(
         }
     }
 }
+
+//------------------------------------------------
+//GUI - Tag Item
 
 @Composable
 fun TagItem(tag: String) {
@@ -305,6 +333,8 @@ fun TagItem(tag: String) {
     }
 }
 
+//------------------------------------------------
+//GUI - Filters
 
 @Composable
 fun FilterRow(viewModel: FavouriteMealsViewModel) {
@@ -344,7 +374,6 @@ fun FilterDialogButton(
     onOptionSelected: (String?) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
 
     Button(onClick = { showDialog = true }) {
         Text(selectedOption ?: label)
@@ -392,15 +421,5 @@ fun FilterDialogButton(
                 }
             }
         )
-    }
-}
-
-
-class FavouriteMealsViewModelFactory(
-    private val repository: MealRepository
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return FavouriteMealsViewModel(repository) as T
     }
 }

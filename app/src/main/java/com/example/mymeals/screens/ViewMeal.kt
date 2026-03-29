@@ -50,10 +50,26 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mymeals.db.MealRepository
 
-//import kotlinx.coroutines.launch
+//================================================================
+//ViewModel - Factory
+
+class ViewMealViewModelFactory(
+    private val repository: MealRepository
+)
+    : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return ViewMealViewModel(repository) as T
+    }
+}
+
+//================================================================
+//ViewModel
+
 class ViewMealViewModel(
     private val repository: MealRepository
-) : ViewModel() {
+)
+    : ViewModel() {
 
     var meal by mutableStateOf<JSONObject?>(null)
         private set
@@ -106,6 +122,9 @@ class ViewMealViewModel(
     }
 }
 
+//================================================================
+//Screen
+
 @Composable
 fun ScreenViewMeal(
     viewModel: ViewMealViewModel,
@@ -119,11 +138,9 @@ fun ScreenViewMeal(
 
     val context = LocalContext.current
 
-    val vmMeal = viewModel.meal
     val isFavourite = viewModel.isFavourite
     val isLoading = viewModel.isLoading
 
-    // 🔥 ustaw meal tylko raz
     LaunchedEffect(meal) {
         viewModel.setMealData(meal)
     }
@@ -252,15 +269,5 @@ fun ScreenViewMeal(
                 )
             }
         }
-    }
-}
-
-
-class ViewMealViewModelFactory(
-    private val repository: MealRepository
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ViewMealViewModel(repository) as T
     }
 }
